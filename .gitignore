@@ -1,0 +1,18 @@
+# Local scripts
+*.sh
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Release packages
+*.zip
+*.tar.gz
