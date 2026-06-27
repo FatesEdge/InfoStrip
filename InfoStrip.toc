@@ -1,7 +1,13 @@
 ## Interface: 120000
 ## Title: InfoStrip
-## Notes: Lightweight FPS and latency status strip.
+## Notes: Lightweight FPS, latency and time status strip.
 ## Author: PanZK
-## Version: 0.1.0
+## Version: 0.2.1
+## SavedVariables: InfoStripDB
 
+Defaults.lua
+Locale.lua
+Utils.lua
+Display.lua
+Options.lua
 Core.lua
