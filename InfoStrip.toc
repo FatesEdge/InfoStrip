@@ -1,13 +1,27 @@
 ## Interface: 120000
 ## Title: InfoStrip
-## Notes: Lightweight FPS, latency and time status strip.
-## Author: PanZK
-## Version: 0.2.1
+## Notes: Lightweight multilingual FPS, latency, bandwidth, speed, coordinate and time status strip.
+## Author: Edge of Fate
+## Version: 0.5.0
 ## SavedVariables: InfoStripDB
+## IconTexture: Interface\AddOns\InfoStrip\Media\InfoStripIcon.tga
+## Category: Interface Enhancements
+## X-Category: Interface Enhancements
+## X-Tags: fps, latency, ping, bandwidth, clock, performance, status, system, hud, speed, coordinates
+## AddonCompartmentFunc: InfoStrip_OpenOptions
+## AddonCompartmentFuncOnEnter: InfoStrip_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: InfoStrip_OnAddonCompartmentLeave
 
 Defaults.lua
 Locale.lua
 Utils.lua
+Templates.xml
 Display.lua
 Options.lua
+OptionsControls.lua
+OptionsAbout.lua
+OptionsGeneral.lua
+OptionsAppearance.lua
+OptionsAdvanced.lua
+OptionsRegister.lua
 Core.lua
