@@ -76,6 +76,8 @@ function Options:CreateGeneralPanel()
         ResetTableSection(InfoStripDB.display, InfoStrip.defaults.display)
         InfoStripDB.general.labels = {}
         Utils.ApplyDefaults(InfoStripDB.general.labels, InfoStrip.defaults.general.labels)
+        InfoStripDB.general.icons = {}
+        Utils.ApplyDefaults(InfoStripDB.general.icons, InfoStrip.defaults.general.icons)
         InfoStripDB.general.template = InfoStrip.defaults.general.template
     end, InfoStrip:L("hintResetDisplay"))
     CreateTextBlock(panel, InfoStrip:L("displayFieldsHint"), 44)
@@ -117,14 +119,14 @@ function Options:CreateGeneralPanel()
             label = InfoStrip:L("presetFull"),
             width = 110,
             onClick = function()
-                ApplyDisplayTemplate("{%fps}  {%home}  {%world}  {%total}  {%bw_in}  {%bw_out}  {%speed}  {%coord}  {%date}  {%local}  {%server}")
+                ApplyDisplayTemplate("{%fps}  {%home}  {%world}  {%total}  {%bw_in}  {%bw_out}  {%speed}  {%coord}  {%region}  {%date}  {%local}  {%server}")
             end,
         },
         {
             label = InfoStrip:L("presetTwoLines"),
             width = 110,
             onClick = function()
-                ApplyDisplayTemplate("{%fps}  {%home}  {%world}  {%total}\\n{%bw_in}  {%bw_out}  {%speed}  {%coord}  {%date}  {%local}  {%server}")
+                ApplyDisplayTemplate("{%fps}  {%home}  {%world}  {%total}\\n{%bw_in}  {%bw_out}  {%speed}  {%coord}  {%region}  {%date}  {%local}  {%server}")
             end,
         },
         {

@@ -53,6 +53,8 @@ function Display:CreateFrame()
     frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     frame.text:SetJustifyH("CENTER")
     frame.text:SetJustifyV("MIDDLE")
+    if frame.text.SetWordWrap then frame.text:SetWordWrap(false) end
+    if frame.text.SetNonSpaceWrap then frame.text:SetNonSpaceWrap(false) end
     frame.text:SetText("InfoStrip")
 
     frame:SetScript("OnDragStart", function(self)
@@ -71,6 +73,13 @@ function Display:CreateFrame()
     end)
 
     self.frame = frame
+end
+
+function Display:InvalidateRenderCache()
+    self.lastDisplayText = nil
+    self.lastPadX = nil
+    self.lastPadY = nil
+    self.lastTextAlign = nil
 end
 
 function Display:ApplyTextStyle()
@@ -104,6 +113,8 @@ function Display:ApplyTextStyle()
     end
 
     self.frame.text:SetJustifyH(Utils.GetTextAlign())
+    if self.frame.text.SetWordWrap then self.frame.text:SetWordWrap(false) end
+    if self.frame.text.SetNonSpaceWrap then self.frame.text:SetNonSpaceWrap(false) end
 
     if textSettings.shadow then
         local shadowX = tonumber(textSettings.shadowOffsetX) or 1
@@ -114,6 +125,8 @@ function Display:ApplyTextStyle()
         self.frame.text:SetShadowOffset(0, 0)
         self.frame.text:SetShadowColor(0, 0, 0, 0)
     end
+
+    self:InvalidateRenderCache()
 end
 
 function Display:ApplyFrameStyle()
@@ -138,9 +151,12 @@ function Display:ApplyFrameStyle()
         insets = useRoundedBackdrop and { left = 4, right = 4, top = 4, bottom = 4 } or { left = 0, right = 0, top = 0, bottom = 0 },
     }
 
-    if frameSettings.borderEnabled then
-        backdrop.edgeFile = useRoundedBackdrop and "Interface\\Tooltips\\UI-Tooltip-Border" or "Interface\\Buttons\\WHITE8x8"
-        backdrop.edgeSize = useRoundedBackdrop and math.max(8, cornerRadius + borderSize) or borderSize
+    if useRoundedBackdrop then
+        backdrop.edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border"
+        backdrop.edgeSize = math.max(8, cornerRadius + borderSize)
+    elseif frameSettings.borderEnabled then
+        backdrop.edgeFile = "Interface\\Buttons\\WHITE8x8"
+        backdrop.edgeSize = borderSize
     else
         backdrop.edgeFile = nil
         backdrop.edgeSize = 0
@@ -158,10 +174,16 @@ function Display:ApplyFrameStyle()
     if frameSettings.borderEnabled then
         local c = frameSettings.borderColor
         self.frame:SetBackdropBorderColor(c.r or 1, c.g or 1, c.b or 1, c.a or 0.25)
+    elseif useRoundedBackdrop and frameSettings.backgroundEnabled then
+        local c = frameSettings.backgroundColor
+        self.frame:SetBackdropBorderColor(c.r or 0, c.g or 0, c.b or 0, c.a or 0.35)
     else
         self.frame:SetBackdropBorderColor(0, 0, 0, 0)
     end
+
+    self:InvalidateRenderCache()
 end
+
 
 function Display:ApplySettings()
     if not self.frame then
@@ -183,11 +205,12 @@ function Display:ApplySettings()
 
     self:ApplyTextStyle()
     self:ApplyFrameStyle()
+    self:UpdateMinimapButton()
     self:UpdateText()
 end
 
 function Display:SavePosition()
-    if not self.frame then
+    if not self.frame or not InfoStripDB or not InfoStripDB.position then
         return
     end
 
@@ -256,6 +279,8 @@ local function MarkTokenNeed(needs, token)
         if InfoStripDB.display.showSpeed then needs.speed = true end
     elseif token == "coord" or token == "coord_value" then
         if InfoStripDB.display.showCoord then needs.coord = true end
+    elseif token == "region" or token == "region_value" then
+        if InfoStripDB.display.showRegion then needs.region = true end
     elseif token == "date" or token == "date_value" then
         if InfoStripDB.display.showDate then needs.date = true end
     elseif token == "local" or token == "local_time" then
@@ -301,6 +326,10 @@ function Display:BuildData(usePreviewFallback, segments)
 
     if needs.coord then
         data.coord = Utils.GetPlayerCoordinates(usePreviewFallback)
+    end
+
+    if needs.region then
+        data.region = Utils.GetRegionCode(usePreviewFallback)
     end
 
     if needs.date then
@@ -405,6 +434,12 @@ function Display:TokenText(token, data)
     elseif token == "coord_value" then
         if not InfoStripDB.display.showCoord or not data.coord then return "" end
         return Utils.ColorText(data.coord, Utils.GetCoordColor())
+    elseif token == "region" then
+        if not InfoStripDB.display.showRegion then return "" end
+        return AddLabel("region", InfoStrip:L("region") .. ":") .. Utils.ColorText(data.region, Utils.GetRegionColor())
+    elseif token == "region_value" then
+        if not InfoStripDB.display.showRegion then return "" end
+        return Utils.ColorText(data.region, Utils.GetRegionColor())
     elseif token == "date" then
         if not InfoStripDB.display.showDate then return "" end
         return AddLabel("date", InfoStrip:L("date")) .. Utils.ColorText(data.dateText, Utils.GetDateColor())
@@ -524,20 +559,40 @@ function Display:UpdateText()
     end
 
     local padX, padY = Utils.GetPadding()
-    self:UpdateMinimapButton()
-
-    self.frame.text:ClearAllPoints()
-    self.frame.text:SetJustifyH(Utils.GetTextAlign())
-    self.frame.text:SetPoint("TOPLEFT", self.frame, "TOPLEFT", padX, -padY)
-    self.frame.text:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -padX, padY)
+    local textAlign = Utils.GetTextAlign()
 
     local displayText = self:BuildText()
+    if displayText == self.lastDisplayText
+        and padX == self.lastPadX
+        and padY == self.lastPadY
+        and textAlign == self.lastTextAlign then
+        return
+    end
+
+    self.lastDisplayText = displayText
+    self.lastPadX = padX
+    self.lastPadY = padY
+    self.lastTextAlign = textAlign
+
+    -- Measure the text without anchoring it to the current frame size.
+    -- If the FontString is measured while constrained by the old width,
+    -- newly added long content can briefly wrap, making the backdrop jump taller
+    -- for one update and then shrink again after the width catches up.
+    self.frame.text:ClearAllPoints()
+    self.frame.text:SetWidth(0)
+    if self.frame.text.SetWordWrap then self.frame.text:SetWordWrap(false) end
+    if self.frame.text.SetNonSpaceWrap then self.frame.text:SetNonSpaceWrap(false) end
+    self.frame.text:SetJustifyH(textAlign)
     self.frame.text:SetText(displayText)
 
     local textWidth = self.frame.text:GetStringWidth() or 80
     local textHeight = self.frame.text:GetStringHeight() or 20
-    self.frame:SetWidth(math.max(80, textWidth + padX * 2 + 12))
-    self.frame:SetHeight(math.max(24, textHeight + padY * 2 + 2))
+    self.frame:SetWidth(math.max(80, math.ceil(textWidth + padX * 2 + 4)))
+    self.frame:SetHeight(math.max(24, math.ceil(textHeight + padY * 2 + 2)))
+
+    self.frame.text:ClearAllPoints()
+    self.frame.text:SetPoint("TOPLEFT", self.frame, "TOPLEFT", padX, -padY)
+    self.frame.text:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -padX, padY)
 end
 
 function Display:OnUpdate(elapsed)

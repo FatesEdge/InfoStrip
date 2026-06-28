@@ -95,23 +95,10 @@ local tokenButtonsFull = {
     { key = "bw_out", labelKey = "bandwidthOut" },
     { key = "speed", labelKey = "speed" },
     { key = "coord", labelKey = "coord" },
+    { key = "region", labelKey = "region" },
     { key = "date", labelKey = "date" },
     { key = "local", labelKey = "localTime" },
     { key = "server", labelKey = "serverTime" },
-}
-
-local tokenButtonsValue = {
-    { key = "fps_value", labelKey = "fpsValue" },
-    { key = "home_value", labelKey = "homeValue" },
-    { key = "world_value", labelKey = "worldValue" },
-    { key = "total_value", labelKey = "totalValue" },
-    { key = "bw_in_value", labelKey = "bandwidthInValue" },
-    { key = "bw_out_value", labelKey = "bandwidthOutValue" },
-    { key = "speed_value", labelKey = "speedValue" },
-    { key = "coord_value", labelKey = "coordValue" },
-    { key = "date_value", labelKey = "dateValue" },
-    { key = "local_time", labelKey = "localTimeValue" },
-    { key = "server_time", labelKey = "serverTimeValue" },
 }
 
 local displayFieldItems = {
@@ -123,6 +110,7 @@ local displayFieldItems = {
     { displayKey = "showBandwidthOut", labelKey = "showBandwidthOut", labelToggleKey = "bw_out", iconToggleKey = "bw_out" },
     { displayKey = "showSpeed", labelKey = "showSpeed", labelToggleKey = "speed", iconToggleKey = "speed" },
     { displayKey = "showCoord", labelKey = "showCoord", labelToggleKey = "coord", iconToggleKey = "coord" },
+    { displayKey = "showRegion", labelKey = "showRegion", labelToggleKey = "region", iconToggleKey = "region" },
     { displayKey = "showDate", labelKey = "showDate", labelToggleKey = "date", iconToggleKey = "date" },
     { displayKey = "showLocalTime", labelKey = "showLocalTime", labelToggleKey = "localTime", iconToggleKey = "localTime" },
     { displayKey = "showServerTime", labelKey = "showServerTime", labelToggleKey = "serverTime", iconToggleKey = "serverTime" },
@@ -300,17 +288,35 @@ local function AttachRowHoverToChild(row, child)
 end
 
 
+local function ApplyShouldDisplay(control)
+    if not control then return end
+
+    if not control.infoStripOriginalHeight and control.GetHeight then
+        local h = control:GetHeight()
+        if h and h > 1 then
+            control.infoStripOriginalHeight = h
+        end
+    end
+
+    local visible = true
+    if control.ShouldDisplay then
+        visible = control:ShouldDisplay() and true or false
+    end
+
+    control:SetShown(visible)
+    if control.SetHeight then
+        if visible then
+            control:SetHeight(control.infoStripOriginalHeight or control:GetHeight() or 28)
+        else
+            control:SetHeight(1)
+        end
+    end
+end
+
 local function SetShouldDisplay(control, predicate)
     if not control then return control end
     control.ShouldDisplay = predicate
-    local visible = true
-    if predicate then
-        visible = predicate() and true or false
-    end
-    control:SetShown(visible)
-    if not visible and control.SetHeight then
-        control:SetHeight(1)
-    end
+    ApplyShouldDisplay(control)
     return control
 end
 
@@ -328,7 +334,7 @@ function Options:Refresh()
 
     for _, control in ipairs(self.controls) do
         if control.ShouldDisplay then
-            control:SetShown(control:ShouldDisplay())
+            ApplyShouldDisplay(control)
         end
         if control.Refresh then
             control:Refresh()
@@ -870,13 +876,17 @@ local function CreateDisplayFieldList(parent)
 
         function row:Refresh()
             local visible = InfoStripDB.display[item.displayKey] and true or false
+            local allowIcon = item.allowIcon ~= false and item.iconToggleKey ~= nil
             InfoStripDB.general.labels = InfoStripDB.general.labels or {}
             InfoStripDB.general.icons = InfoStripDB.general.icons or {}
             showCheck:SetChecked(visible)
             labelCheck:SetChecked(InfoStripDB.general.labels[item.labelToggleKey] ~= false)
-            iconCheck:SetChecked(InfoStripDB.general.icons[item.iconToggleKey] == true)
+            iconCheck:SetShown(allowIcon)
+            if allowIcon then
+                iconCheck:SetChecked(InfoStripDB.general.icons[item.iconToggleKey] == true)
+                SetControlEnabled(iconCheck, visible)
+            end
             SetControlEnabled(labelCheck, visible)
-            SetControlEnabled(iconCheck, visible)
             label:SetAlpha(visible and 1 or 0.55)
         end
 
@@ -894,6 +904,9 @@ local function CreateDisplayFieldList(parent)
         end)
 
         iconCheck:SetScript("OnClick", function()
+            if item.allowIcon == false or not item.iconToggleKey then
+                return
+            end
             InfoStripDB.general.icons = InfoStripDB.general.icons or {}
             InfoStripDB.general.icons[item.iconToggleKey] = iconCheck:GetChecked() and true or false
             InfoStrip.Display:ApplySettings()
@@ -1182,7 +1195,7 @@ local function OpenColorPicker(color, onChanged)
     })
 end
 
-local function CreateColorSwatch(parent, label, x, y, colorGetter, enabledGetter, onChanged)
+local function CreateColorSwatch(parent, label, x, y, colorGetter, enabledGetter, onChanged, labelWidth)
     local button = CreateFrame("Button", nil, parent, "BackdropTemplate")
     button:SetSize(38, 20)
     button:SetPoint("TOPLEFT", x or 7, y or -4)
@@ -1204,8 +1217,10 @@ local function CreateColorSwatch(parent, label, x, y, colorGetter, enabledGetter
 
     local text = button:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     text:SetPoint("LEFT", button, "RIGHT", 8, 0)
-    text:SetWidth(92)
+    text:SetWidth(labelWidth or 150)
     text:SetJustifyH("LEFT")
+    if text.SetWordWrap then text:SetWordWrap(false) end
+    if text.SetNonSpaceWrap then text:SetNonSpaceWrap(false) end
     text:SetText(label)
 
     function button:Refresh()
@@ -1245,8 +1260,8 @@ local function CreateColorSwatchRow(parent, specs, shouldDisplay, height)
 
     local x = 7
     for _, spec in ipairs(specs) do
-        CreateColorSwatch(row, spec.label, x, spec.y or -5, spec.colorGetter, spec.enabledGetter, spec.onChanged)
-        x = x + (spec.width or 148)
+        CreateColorSwatch(row, spec.label, x, spec.y or -5, spec.colorGetter, spec.enabledGetter, spec.onChanged, spec.labelWidth)
+        x = x + (spec.width or 200)
     end
 
     row.ShouldDisplay = shouldDisplay
@@ -1262,6 +1277,8 @@ local function CreateColorRow(parent, label, colorGetter, enabledGetter, onChang
         colorGetter = colorGetter,
         enabledGetter = enabledGetter,
         onChanged = onChanged,
+        width = 220,
+        labelWidth = 170,
     }}, nil, 30)
 end
 
@@ -1318,7 +1335,13 @@ local function CreateFontColorBoldRow(parent, fontLabel, colorLabel, boldLabel, 
 
     row.layoutIndex = parent:GetLayoutIndex()
     row.bottomPadding = 4
-    StyleOptionRow(row, fontLabel, InfoStrip:L("hintFont"))
+    local combinedTitle = fontLabel .. " / " .. colorLabel .. " / " .. boldLabel
+    local combinedHint = table.concat({
+        fontLabel .. ": " .. InfoStrip:L("hintFont"),
+        colorLabel .. ": " .. InfoStrip:L("hintMainTextColor"),
+        boldLabel .. ": " .. InfoStrip:L("hintBold"),
+    }, "\n")
+    StyleOptionRow(row, combinedTitle, combinedHint)
     AttachRowHoverToChild(row, dropdown)
     AttachRowHoverToChild(row, swatch)
     AttachRowHoverToChild(row, bold)
@@ -1639,19 +1662,22 @@ local function CreateValueColorGroup(parent, kind, title, gateGetter)
     if cfg.kind == "threshold" then
         CreateColorSwatchGroupRow(group, {
             {
-                width = 180,
+                width = 200,
+                labelWidth = 150,
                 label = InfoStrip:L("goodColor"),
                 colorGetter = function() return cfg.good end,
                 enabledGetter = function() return InfoStripDB.ui.appearanceExpanded[kind] and cfg.mode == "thresholdCustom" end,
             },
             {
-                width = 180,
+                width = 200,
+                labelWidth = 150,
                 label = InfoStrip:L("warningColor"),
                 colorGetter = function() return cfg.warning end,
                 enabledGetter = function() return InfoStripDB.ui.appearanceExpanded[kind] and cfg.mode == "thresholdCustom" end,
             },
             {
-                width = 180,
+                width = 200,
+                labelWidth = 150,
                 label = InfoStrip:L("badColor"),
                 colorGetter = function() return cfg.bad end,
                 enabledGetter = function() return InfoStripDB.ui.appearanceExpanded[kind] and cfg.mode == "thresholdCustom" end,
@@ -1768,6 +1794,9 @@ local function CreatePreviewBlock(parent)
     previewText:SetJustifyH("CENTER")
     previewText:SetJustifyV("MIDDLE")
     if previewText.SetSpacing then previewText:SetSpacing(4) end
+
+    Options.previewRow = row
+    Options.previewFrame = previewFrame
     Options.previewText = previewText
     return row
 end
@@ -1786,7 +1815,6 @@ Options.Private = {
     precisionValues = precisionValues,
     dateFormatPresets = dateFormatPresets,
     tokenButtonsFull = tokenButtonsFull,
-    tokenButtonsValue = tokenButtonsValue,
     displayFieldItems = displayFieldItems,
     ValueLabel = ValueLabel,
     LanguageLabel = LanguageLabel,

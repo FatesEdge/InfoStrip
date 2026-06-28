@@ -12,6 +12,7 @@ local TOKEN_ITEMS = {
     { key = "bw_out", displayKey = "showBandwidthOut", tokens = { "bw_out", "bw_out_value" }, defaultToken = "bw_out" },
     { key = "speed", displayKey = "showSpeed", tokens = { "speed", "speed_value" }, defaultToken = "speed" },
     { key = "coord", displayKey = "showCoord", tokens = { "coord", "coord_value" }, defaultToken = "coord" },
+    { key = "region", displayKey = "showRegion", tokens = { "region", "region_value" }, defaultToken = "region" },
     { key = "date", displayKey = "showDate", tokens = { "date", "date_value" }, defaultToken = "date" },
     { key = "local", displayKey = "showLocalTime", tokens = { "local", "local_time" }, defaultToken = "local" },
     { key = "server", displayKey = "showServerTime", tokens = { "server", "server_time" }, defaultToken = "server" },
@@ -159,6 +160,10 @@ function Utils.GetCoordColor()
     return Utils.GetSimpleValueColor("coord")
 end
 
+function Utils.GetRegionColor()
+    return Utils.GetSimpleValueColor("region")
+end
+
 function Utils.GetDateColor()
     return Utils.GetSimpleValueColor("date")
 end
@@ -234,6 +239,44 @@ end
 function Utils.FormatLocalTime()
     local now = date("*t")
     return Utils.FormatClock(now.hour, now.min, now.sec)
+end
+
+
+local REGION_CODES = {
+    [1] = "US",
+    [2] = "KR",
+    [3] = "EU",
+    [4] = "TW",
+    [5] = "CN",
+    [21] = "US",
+    [22] = "KR",
+    [23] = "EU",
+    [24] = "TW",
+    [25] = "CN",
+    [26] = "OC",
+    [50] = "PTR",
+    [57] = "XPTR",
+}
+
+function Utils.GetRegionCode(useMockFallback)
+    local regionID = GetCurrentRegion and GetCurrentRegion()
+    local code = REGION_CODES[tonumber(regionID)]
+    if code then
+        return code
+    end
+
+    if GetCurrentRegionName then
+        local name = GetCurrentRegionName()
+        if name and name ~= "" then
+            return tostring(name)
+        end
+    end
+
+    if useMockFallback then
+        return "US"
+    end
+
+    return "--"
 end
 
 function Utils.FormatServerTime()
@@ -576,6 +619,7 @@ function Utils.IconText(kind)
         bw_out = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
         speed = "Interface\\Icons\\Ability_Rogue_Sprint",
         coord = "Interface\\Icons\\INV_Misc_Map_01",
+        region = "Interface\\AddOns\\InfoStrip\\Media\\RegionServer.tga",
         date = "Interface\\Icons\\INV_Misc_Note_01",
         localTime = "Interface\\Icons\\INV_Misc_PocketWatch_01",
         serverTime = "Interface\\Icons\\INV_Misc_PocketWatch_01",

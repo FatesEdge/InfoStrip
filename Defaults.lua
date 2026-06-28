@@ -4,12 +4,13 @@ _G.InfoStrip = _G.InfoStrip or {}
 local InfoStrip = _G.InfoStrip
 
 InfoStrip.addonName = addonName
-InfoStrip.version = "0.5.0"
-InfoStrip.authorName = "Fate\'s Edge"
+InfoStrip.version = "1.0.0"
+InfoStrip.authorName = "Fate's Edge"
 InfoStrip.githubName = "FatesEdge"
+InfoStrip.githubUrl = "https://github.com/FatesEdge/InfoStrip"
 
 InfoStrip.defaults = {
-    schemaVersion = "0.5.0-refactor3",
+    schemaVersion = "1.0.0",
     enabled = true,
 
     language = "auto",
@@ -25,8 +26,8 @@ InfoStrip.defaults = {
     },
 
     general = {
-        updateIntervalMs = 500,
-        template = "{%fps}  {%home}  {%world}  {%local}  {%server}",
+        updateIntervalMs = 1000,
+        template = "{%fps}  {%home}  {%world}",
         showSettingsIcon = false,
         labels = {
             fps = true,
@@ -37,6 +38,7 @@ InfoStrip.defaults = {
             bw_out = true,
             speed = true,
             coord = true,
+            region = true,
             date = true,
             localTime = true,
             serverTime = true,
@@ -51,6 +53,7 @@ InfoStrip.defaults = {
             bw_out = false,
             speed = false,
             coord = false,
+            region = true,
             date = false,
             localTime = false,
             serverTime = false,
@@ -66,16 +69,17 @@ InfoStrip.defaults = {
         showBandwidthOut = false,
         showSpeed = false,
         showCoord = false,
+        showRegion = false,
         showDate = false,
-        showLocalTime = true,
-        showServerTime = true,
+        showLocalTime = false,
+        showServerTime = false,
     },
 
     appearance = {
         text = {
             mainColor = { r = 1.0, g = 0.82, b = 0.0 },
             fontFamily = "default",
-            fontSize = 13,
+            fontSize = 14,
             outline = "NONE",
             bold = false,
             shadow = true,
@@ -96,7 +100,7 @@ InfoStrip.defaults = {
             paddingX = 6,
             paddingY = 4,
             lineSpacingMultiplier = 1.2,
-            textAlign = "CENTER",
+            textAlign = "LEFT",
         },
 
         format = {
@@ -105,7 +109,7 @@ InfoStrip.defaults = {
             showSeconds = false,
             speedFormat = "percent",
             coordUnavailableMode = "hide",
-            coordPrecision = 1,
+            coordPrecision = 2,
         },
 
         valueColors = {
@@ -163,6 +167,12 @@ InfoStrip.defaults = {
                 fixed = { r = 1.0, g = 1.0, b = 1.0 },
             },
 
+            region = {
+                kind = "simple",
+                mode = "followMain",
+                fixed = { r = 1.0, g = 1.0, b = 1.0 },
+            },
+
             date = {
                 kind = "simple",
                 mode = "followMain",
@@ -199,6 +209,7 @@ InfoStrip.defaults = {
             coord = false,
             date = false,
             time = false,
+            region = false,
         },
     },
 }

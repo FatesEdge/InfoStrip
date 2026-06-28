@@ -30,6 +30,23 @@ local CreateNumberRow = P.CreateNumberRow
 local CreateColorRow = P.CreateColorRow
 local CreateValueColorGroup = P.CreateValueColorGroup
 
+local valueColorGroups = {
+    { kind = "fps", titleKey = "fpsColor", gate = function() return InfoStripDB.display.showFPS end },
+    { kind = "latency", titleKey = "latencyColor", gate = function() return InfoStripDB.display.showHomeLatency or InfoStripDB.display.showWorldLatency end },
+    { kind = "bandwidth", titleKey = "bandwidthColor", gate = function() return InfoStripDB.display.showBandwidthIn or InfoStripDB.display.showBandwidthOut end },
+    { kind = "speed", titleKey = "speedColor", gate = function() return InfoStripDB.display.showSpeed end },
+    { kind = "coord", titleKey = "coordColor", gate = function() return InfoStripDB.display.showCoord end },
+    { kind = "region", titleKey = "regionColor", gate = function() return InfoStripDB.display.showRegion end },
+    { kind = "date", titleKey = "dateColor", gate = function() return InfoStripDB.display.showDate end },
+    { kind = "time", titleKey = "timeColor", gate = function() return InfoStripDB.display.showLocalTime or InfoStripDB.display.showServerTime end },
+}
+
+local function ResetAllValueColors()
+    for _, group in ipairs(valueColorGroups) do
+        Utils.ResetValueColor(group.kind)
+    end
+end
+
 function Options:CreateAppearancePanel()
     local panel = CreatePanel()
     self.appearancePanel = panel
@@ -100,6 +117,7 @@ function Options:CreateAppearancePanel()
         nil,
         "px"
     )
+    shadowBox:Refresh()
 
     CreateSectionDivider(panel)
     CreateSectionHeader(panel, InfoStrip:L("formatSection"), InfoStrip:L("resetFormat"), function()
@@ -251,23 +269,11 @@ function Options:CreateAppearancePanel()
 
 
     CreateSectionDivider(panel)
-    CreateSectionHeader(panel, InfoStrip:L("valueColorsSection"), InfoStrip:L("resetAllColors"), function()
-        Utils.ResetValueColor("fps")
-        Utils.ResetValueColor("latency")
-        Utils.ResetValueColor("bandwidth")
-        Utils.ResetValueColor("speed")
-        Utils.ResetValueColor("coord")
-        Utils.ResetValueColor("date")
-        Utils.ResetValueColor("time")
-    end, InfoStrip:L("hintResetValueColors"))
+    CreateSectionHeader(panel, InfoStrip:L("valueColorsSection"), InfoStrip:L("resetAllColors"), ResetAllValueColors, InfoStrip:L("hintResetValueColors"))
 
-    CreateValueColorGroup(panel, "fps", InfoStrip:L("fpsColor"), function() return InfoStripDB.display.showFPS end)
-    CreateValueColorGroup(panel, "latency", InfoStrip:L("latencyColor"), function() return InfoStripDB.display.showHomeLatency or InfoStripDB.display.showWorldLatency end)
-    CreateValueColorGroup(panel, "bandwidth", InfoStrip:L("bandwidthColor"), function() return InfoStripDB.display.showBandwidthIn or InfoStripDB.display.showBandwidthOut end)
-    CreateValueColorGroup(panel, "speed", InfoStrip:L("speedColor"), function() return InfoStripDB.display.showSpeed end)
-    CreateValueColorGroup(panel, "coord", InfoStrip:L("coordColor"), function() return InfoStripDB.display.showCoord end)
-    CreateValueColorGroup(panel, "date", InfoStrip:L("dateColor"), function() return InfoStripDB.display.showDate end)
-    CreateValueColorGroup(panel, "time", InfoStrip:L("timeColor"), function() return InfoStripDB.display.showLocalTime or InfoStripDB.display.showServerTime end)
+    for _, group in ipairs(valueColorGroups) do
+        CreateValueColorGroup(panel, group.kind, InfoStrip:L(group.titleKey), group.gate)
+    end
 
 
     panel:Layout()

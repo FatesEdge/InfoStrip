@@ -5,7 +5,6 @@ local P = Options.Private
 
 local CONTENT_WIDTH = P.CONTENT_WIDTH
 local tokenButtonsFull = P.tokenButtonsFull
-local tokenButtonsValue = P.tokenButtonsValue
 local CreatePanel = P.CreatePanel
 local CreateDividerHeader = P.CreateDividerHeader
 local CreateSectionDivider = P.CreateSectionDivider
@@ -46,14 +45,52 @@ local function BuildDebugInfo(template)
     }, "\n")
 end
 
+local function CountTextLines(text)
+    text = tostring(text or "")
+    local count = 1
+    for _ in text:gmatch("\n") do
+        count = count + 1
+    end
+    return count
+end
+
+function Options:RefreshPreviewHeight(text)
+    if not self.previewRow or not self.previewFrame or not self.previewText then
+        return
+    end
+
+    local minHeight = 72
+    local padding = 24
+    local spacing = 4
+    local _, fontSize = self.previewText:GetFont()
+    local estimatedHeight = CountTextLines(text) * ((fontSize or 13) + spacing)
+    local stringHeight = 0
+    if self.previewText.GetStringHeight then
+        stringHeight = self.previewText:GetStringHeight() or 0
+    end
+
+    local nextHeight = math.max(minHeight, math.ceil(math.max(estimatedHeight, stringHeight) + padding))
+    self.previewRow:SetHeight(nextHeight)
+    self.previewFrame:SetHeight(nextHeight)
+
+    if self.advancedPanel then
+        if self.advancedPanel.Layout then
+            self.advancedPanel:Layout()
+        end
+        self.advancedPanel:UpdateScrollHeight()
+    end
+end
+
 function Options:UpdatePreview()
     if not self.previewText then
         return
     end
 
     local template = self.templateEditBox and self.templateEditBox:GetText() or InfoStripDB.general.template
+    local text = InfoStrip.Display:BuildPreviewText(template)
     self.previewText:SetJustifyH(Utils.GetTextAlign())
-    self.previewText:SetText(InfoStrip.Display:BuildPreviewText(template))
+    self.previewText:SetText(text)
+    self:RefreshPreviewHeight(text)
 
     if self.debugText then
         self.debugText:SetText(BuildDebugInfo(template))
@@ -134,10 +171,6 @@ function Options:CreateAdvancedPanel()
 
     CreateTextBlock(panel, InfoStrip:L("fullTokens"), 26, "GameFontNormal")
     CreateButtonRow(panel, MakeTokenButtonSpecs(tokenButtonsFull))
-
-    CreateTextBlock(panel, InfoStrip:L("valueTokens"), 26, "GameFontNormal")
-    CreateButtonRow(panel, MakeTokenButtonSpecs(tokenButtonsValue))
-
 
     CreateTextBlock(panel, InfoStrip:L("templateHint"), 86)
 
