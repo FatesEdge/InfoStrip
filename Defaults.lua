@@ -4,7 +4,7 @@ _G.InfoStrip = _G.InfoStrip or {}
 local InfoStrip = _G.InfoStrip
 
 InfoStrip.addonName = addonName
-InfoStrip.version = "1.0.0"
+InfoStrip.version = "1.0.1"
 InfoStrip.authorName = "Fate's Edge"
 InfoStrip.githubName = "FatesEdge"
 InfoStrip.githubUrl = "https://github.com/FatesEdge/InfoStrip"
@@ -29,6 +29,7 @@ InfoStrip.defaults = {
         updateIntervalMs = 1000,
         template = "{%fps}  {%home}  {%world}",
         showSettingsIcon = false,
+        rightClickOpenOptions = false,
         labels = {
             fps = true,
             home = true,

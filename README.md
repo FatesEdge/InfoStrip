@@ -7,7 +7,7 @@ InfoStrip is a lightweight multilingual World of Warcraft status strip. It displ
 Author: Fate's Edge
 GitHub: https://github.com/FatesEdge/InfoStrip
 Repository: https://github.com/FatesEdge/InfoStrip
-Version: 1.0.0
+Version: 1.0.1
 Interface: 120007
 
 ## Features
@@ -21,7 +21,7 @@ Interface: 120007
 - Built-in WoW font selection
 - Text color, size, outline, bold, shadow, shadow offsets, line spacing, and left / center / right alignment
 - Frame background, border, corner radius, and padding settings
-- Minimap settings button and AddOn Compartment entry
+- Minimap settings button, AddOn Compartment entry, and optional right-click-to-open-settings on the HUD
 - No third-party libraries
 
 ## Default first-run display
@@ -150,6 +150,7 @@ scp -r \
 
 - SavedVariables use a schema version. If the schema changes, old settings may be reset to defaults.
 - InfoStrip reads expensive data such as speed, coordinates, and region only when the active template needs them.
+- Optional right-click-to-open-settings is disabled by default and can be enabled in General.
 - Region uses a neutral InfoStrip server-rack icon when its icon toggle is enabled; no country or regional flag icons are used.
 - Region uses WoW's current region API. It is not a user location detector and may reflect login/portal region in edge cases.
 - The addon uses WoW built-in APIs and media, plus its own transparent icon file.

@@ -601,7 +601,7 @@ function Utils.GetLabelIconSize()
     fontSize = tonumber(fontSize) or 13
     if fontSize < 11 then fontSize = 11 end
     if fontSize > 24 then fontSize = 24 end
-    return math.floor(fontSize + 2)
+    return math.floor(fontSize)
 end
 
 function Utils.IconText(kind)
@@ -611,16 +611,16 @@ function Utils.IconText(kind)
     end
 
     local icons = {
-        fps = "Interface\\Icons\\INV_Misc_PocketWatch_01",
-        home = "Interface\\Icons\\INV_Misc_Map_01",
-        world = "Interface\\Icons\\INV_Misc_Map_01",
+        fps = "Interface\\Icons\\INV_Misc_Gear_01",
+        home = "Interface\\Icons\\INV_Misc_Spyglass_03",
+        world = "Interface\\Icons\\INV_Misc_Spyglass_03",
         total = "Interface\\Icons\\INV_Misc_Spyglass_03",
         bw_in = "Interface\\Buttons\\UI-SpellbookIcon-PrevPage-Up",
         bw_out = "Interface\\Buttons\\UI-SpellbookIcon-NextPage-Up",
         speed = "Interface\\Icons\\Ability_Rogue_Sprint",
         coord = "Interface\\Icons\\INV_Misc_Map_01",
         region = "Interface\\AddOns\\InfoStrip\\Media\\RegionServer.tga",
-        date = "Interface\\Icons\\INV_Misc_Note_01",
+        date = "Interface\\Calendar\\UI-Calendar-Button",
         localTime = "Interface\\Icons\\INV_Misc_PocketWatch_01",
         serverTime = "Interface\\Icons\\INV_Misc_PocketWatch_01",
     }
@@ -631,5 +631,5 @@ function Utils.IconText(kind)
     end
 
     local size = Utils.GetLabelIconSize()
-    return "|T" .. texture .. ":" .. size .. ":" .. size .. ":0:-3|t "
+    return "|T" .. texture .. ":" .. size .. ":" .. size .. ":0:-1|t "
 end

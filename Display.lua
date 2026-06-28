@@ -56,6 +56,7 @@ function Display:CreateFrame()
     if frame.text.SetWordWrap then frame.text:SetWordWrap(false) end
     if frame.text.SetNonSpaceWrap then frame.text:SetNonSpaceWrap(false) end
     frame.text:SetText("InfoStrip")
+    frame.lines = { frame.text }
 
     frame:SetScript("OnDragStart", function(self)
         if not InfoStripDB.position.locked then
@@ -66,6 +67,16 @@ function Display:CreateFrame()
     frame:SetScript("OnDragStop", function(self)
         self:StopMovingOrSizing()
         Display:SavePosition()
+    end)
+
+    frame:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton"
+            and InfoStripDB
+            and InfoStripDB.general
+            and InfoStripDB.general.rightClickOpenOptions
+            and InfoStrip.Options then
+            InfoStrip.Options:Open()
+        end
     end)
 
     frame:SetScript("OnUpdate", function(_, elapsed)
@@ -82,8 +93,51 @@ function Display:InvalidateRenderCache()
     self.lastTextAlign = nil
 end
 
-function Display:ApplyTextStyle()
-    if not self.frame or not self.frame.text then
+function Display:QueueDeferredUpdate()
+    if not C_Timer or not C_Timer.After then
+        return
+    end
+
+    self.deferredUpdateTicket = (self.deferredUpdateTicket or 0) + 1
+    local ticket = self.deferredUpdateTicket
+
+    local function repaint()
+        if not InfoStrip.Display or InfoStrip.Display.deferredUpdateTicket ~= ticket then
+            return
+        end
+        InfoStrip.Display:InvalidateRenderCache()
+        InfoStrip.Display:UpdateText()
+    end
+
+    C_Timer.After(0, repaint)
+    C_Timer.After(0.05, repaint)
+end
+
+local function SplitDisplayLines(text)
+    text = tostring(text or "")
+    local lines = {}
+    local startPos = 1
+
+    while true do
+        local lineEnd = text:find("\n", startPos, true)
+        if not lineEnd then
+            table.insert(lines, text:sub(startPos))
+            break
+        end
+
+        table.insert(lines, text:sub(startPos, lineEnd - 1))
+        startPos = lineEnd + 1
+    end
+
+    if #lines == 0 then
+        lines[1] = ""
+    end
+
+    return lines
+end
+
+function Display:ApplyTextStyleToFontString(fontString)
+    if not fontString or not InfoStripDB or not InfoStripDB.appearance then
         return
     end
 
@@ -91,6 +145,7 @@ function Display:ApplyTextStyle()
     local fontPath = Utils.GetFontPath(textSettings.fontFamily)
     local fontSize = tonumber(textSettings.fontSize) or 13
     local outline = Utils.GetOutlineFlag(textSettings.outline)
+
     if textSettings.bold then
         if outline == "" then
             outline = "OUTLINE"
@@ -99,31 +154,52 @@ function Display:ApplyTextStyle()
         end
     end
 
-    local fontOK = self.frame.text:SetFont(fontPath, fontSize, outline)
+    local fontOK = fontString:SetFont(fontPath, fontSize, outline)
     if fontOK == false then
-        self.frame.text:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", fontSize, outline)
+        fontString:SetFont(STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF", fontSize, outline)
     end
 
-    if self.frame.text.SetSpacing then
-        local frameSettings = InfoStripDB.appearance.frame or {}
-        local multiplier = tonumber(frameSettings.lineSpacingMultiplier) or 1.2
-        if multiplier < 1.0 then multiplier = 1.0 end
-        if multiplier > 2.0 then multiplier = 2.0 end
-        self.frame.text:SetSpacing(math.max(0, fontSize * (multiplier - 1.0)))
-    end
-
-    self.frame.text:SetJustifyH(Utils.GetTextAlign())
-    if self.frame.text.SetWordWrap then self.frame.text:SetWordWrap(false) end
-    if self.frame.text.SetNonSpaceWrap then self.frame.text:SetNonSpaceWrap(false) end
+    fontString:SetJustifyH(Utils.GetTextAlign())
+    fontString:SetJustifyV("MIDDLE")
+    if fontString.SetWordWrap then fontString:SetWordWrap(false) end
+    if fontString.SetNonSpaceWrap then fontString:SetNonSpaceWrap(false) end
 
     if textSettings.shadow then
         local shadowX = tonumber(textSettings.shadowOffsetX) or 1
         local shadowY = tonumber(textSettings.shadowOffsetY) or -1
-        self.frame.text:SetShadowOffset(shadowX, shadowY)
-        self.frame.text:SetShadowColor(0, 0, 0, textSettings.shadowAlpha or 0.8)
+        fontString:SetShadowOffset(shadowX, shadowY)
+        fontString:SetShadowColor(0, 0, 0, textSettings.shadowAlpha or 0.8)
     else
-        self.frame.text:SetShadowOffset(0, 0)
-        self.frame.text:SetShadowColor(0, 0, 0, 0)
+        fontString:SetShadowOffset(0, 0)
+        fontString:SetShadowColor(0, 0, 0, 0)
+    end
+end
+
+function Display:GetLineFontString(index)
+    if not self.frame then
+        return nil
+    end
+
+    self.frame.lines = self.frame.lines or { self.frame.text }
+    local line = self.frame.lines[index]
+
+    if not line then
+        line = self.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        self.frame.lines[index] = line
+        self:ApplyTextStyleToFontString(line)
+    end
+
+    return line
+end
+
+function Display:ApplyTextStyle()
+    if not self.frame or not self.frame.text then
+        return
+    end
+
+    self.frame.lines = self.frame.lines or { self.frame.text }
+    for _, line in ipairs(self.frame.lines) do
+        self:ApplyTextStyleToFontString(line)
     end
 
     self:InvalidateRenderCache()
@@ -207,6 +283,7 @@ function Display:ApplySettings()
     self:ApplyFrameStyle()
     self:UpdateMinimapButton()
     self:UpdateText()
+    self:QueueDeferredUpdate()
 end
 
 function Display:SavePosition()
@@ -574,25 +651,78 @@ function Display:UpdateText()
     self.lastPadY = padY
     self.lastTextAlign = textAlign
 
-    -- Measure the text without anchoring it to the current frame size.
-    -- If the FontString is measured while constrained by the old width,
-    -- newly added long content can briefly wrap, making the backdrop jump taller
-    -- for one update and then shrink again after the width catches up.
-    self.frame.text:ClearAllPoints()
-    self.frame.text:SetWidth(0)
-    if self.frame.text.SetWordWrap then self.frame.text:SetWordWrap(false) end
-    if self.frame.text.SetNonSpaceWrap then self.frame.text:SetNonSpaceWrap(false) end
-    self.frame.text:SetJustifyH(textAlign)
-    self.frame.text:SetText(displayText)
+    local textSettings = InfoStripDB.appearance.text or {}
+    local frameSettings = InfoStripDB.appearance.frame or {}
+    local fontSize = tonumber(textSettings.fontSize) or 14
+    local multiplier = tonumber(frameSettings.lineSpacingMultiplier) or 1.2
+    if multiplier < 1.0 then multiplier = 1.0 end
+    if multiplier > 2.0 then multiplier = 2.0 end
 
-    local textWidth = self.frame.text:GetStringWidth() or 80
-    local textHeight = self.frame.text:GetStringHeight() or 20
-    self.frame:SetWidth(math.max(80, math.ceil(textWidth + padX * 2 + 4)))
-    self.frame:SetHeight(math.max(24, math.ceil(textHeight + padY * 2 + 2)))
+    local lines = SplitDisplayLines(displayText)
+    local lineHeight = math.ceil(fontSize + 2)
+    local lineGap = math.max(0, math.ceil(fontSize * (multiplier - 1.0)))
+    local lineInfo = {}
+    local maxWidth = 0
 
-    self.frame.text:ClearAllPoints()
-    self.frame.text:SetPoint("TOPLEFT", self.frame, "TOPLEFT", padX, -padY)
-    self.frame.text:SetPoint("BOTTOMRIGHT", self.frame, "BOTTOMRIGHT", -padX, padY)
+    for index, lineText in ipairs(lines) do
+        local line = self:GetLineFontString(index)
+        if line then
+            line:ClearAllPoints()
+            line:Show()
+            line:SetJustifyH(textAlign)
+            line:SetJustifyV("MIDDLE")
+            if line.SetWordWrap then line:SetWordWrap(false) end
+            if line.SetNonSpaceWrap then line:SetNonSpaceWrap(false) end
+
+            -- Measure each display line independently. This avoids the built-in
+            -- FontString ellipsis that can appear when one multi-line FontString
+            -- is constrained by the previous HUD width.
+            line:SetWidth(4096)
+            line:SetHeight(lineHeight)
+            line:SetText(lineText ~= "" and lineText or " ")
+
+            local width = math.ceil((line:GetStringWidth() or 0) + 4)
+            if width < 1 then width = 1 end
+
+            lineInfo[index] = { line = line, width = width }
+            if width > maxWidth then maxWidth = width end
+        end
+    end
+
+    for index = #lines + 1, #(self.frame.lines or {}) do
+        local line = self.frame.lines[index]
+        if line then
+            line:Hide()
+        end
+    end
+
+    local totalHeight = lineHeight * #lines
+    if #lines > 1 then
+        totalHeight = totalHeight + lineGap * (#lines - 1)
+    end
+
+    local frameWidth = math.max(80, math.ceil(maxWidth + padX * 2))
+    local frameHeight = math.max(24, math.ceil(totalHeight + padY * 2))
+    self.frame:SetWidth(frameWidth)
+    self.frame:SetHeight(frameHeight)
+
+    local yOffset = padY
+    for _, info in ipairs(lineInfo) do
+        local line = info.line
+        line:ClearAllPoints()
+        line:SetWidth(info.width)
+        line:SetHeight(lineHeight)
+
+        if textAlign == "RIGHT" then
+            line:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -padX, -yOffset)
+        elseif textAlign == "CENTER" then
+            line:SetPoint("TOP", self.frame, "TOP", 0, -yOffset)
+        else
+            line:SetPoint("TOPLEFT", self.frame, "TOPLEFT", padX, -yOffset)
+        end
+
+        yOffset = yOffset + lineHeight + lineGap
+    end
 end
 
 function Display:OnUpdate(elapsed)

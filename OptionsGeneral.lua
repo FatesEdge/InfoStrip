@@ -40,6 +40,11 @@ function Options:CreateGeneralPanel()
         function(value) InfoStripDB.general.showSettingsIcon = value end
     )
 
+    CreateCheck(panel, InfoStrip:L("rightClickOpenOptions"),
+        function() return InfoStripDB.general.rightClickOpenOptions end,
+        function(value) InfoStripDB.general.rightClickOpenOptions = value end
+    )
+
     local languageRow = CreateDropdown(panel, InfoStrip:L("language"), languages, LanguageLabel,
         function() return InfoStripDB.language end,
         function(value)
@@ -127,6 +132,13 @@ function Options:CreateGeneralPanel()
             width = 110,
             onClick = function()
                 ApplyDisplayTemplate("{%fps}  {%home}  {%world}  {%total}\\n{%bw_in}  {%bw_out}  {%speed}  {%coord}  {%region}  {%date}  {%local}  {%server}")
+            end,
+        },
+        {
+            label = InfoStrip:L("presetThreeLines"),
+            width = 110,
+            onClick = function()
+                ApplyDisplayTemplate("{%fps}  {%home}  {%world}  {%total}\n{%bw_in}  {%bw_out}  {%speed}  {%coord}\n{%region}  {%date}  {%local}  {%server}")
             end,
         },
         {

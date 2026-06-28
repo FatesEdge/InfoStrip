@@ -2,7 +2,7 @@
 ## Title: InfoStrip
 ## Notes: Lightweight multilingual FPS, latency, bandwidth, speed, coordinate and time status strip.
 ## Author: Fate's Edge
-## Version: 1.0.0
+## Version: 1.0.1
 ## X-Website: https://github.com/FatesEdge/InfoStrip
 ## SavedVariables: InfoStripDB
 ## IconTexture: Interface\AddOns\InfoStrip\Media\InfoStripIcon.tga

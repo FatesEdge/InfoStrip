@@ -185,6 +185,7 @@ local function DefaultTooltipHint(title)
     local hints = {
         [InfoStrip:L("enabled")] = InfoStrip:L("hintEnabled"),
         [InfoStrip:L("showSettingsIcon")] = InfoStrip:L("hintShowSettingsIcon"),
+        [InfoStrip:L("rightClickOpenOptions")] = InfoStrip:L("hintRightClickOpenOptions"),
         [InfoStrip:L("language")] = InfoStrip:L("hintLanguage"),
         [InfoStrip:L("locked")] = InfoStrip:L("hintLocked"),
         [InfoStrip:L("resetPosition")] = InfoStrip:L("hintResetPosition"),
