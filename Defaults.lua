@@ -5,8 +5,8 @@ local InfoStrip = _G.InfoStrip
 
 InfoStrip.addonName = addonName
 InfoStrip.version = "0.5.0"
-InfoStrip.authorName = "Edge of Fate"
-InfoStrip.githubName = "Edge of Fate"
+InfoStrip.authorName = "Fate\'s Edge"
+InfoStrip.githubName = "FatesEdge"
 
 InfoStrip.defaults = {
     schemaVersion = "0.5.0-refactor3",

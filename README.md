@@ -2,7 +2,9 @@
 
 InfoStrip is a lightweight multilingual World of Warcraft status strip. It displays client status fields in a compact movable HUD, including FPS, Home/World/total latency, bandwidth, movement speed, player coordinates, date, local time, and server time.
 
-Author / GitHub display name: Edge of Fate
+Author: Fate's Edge
+GitHub: FatesEdge
+Repository: https://github.com/FatesEdge/InfoStrip
 
 ## Features
 
